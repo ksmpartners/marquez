@@ -30,10 +30,61 @@ const mqTheme = {
   '--w-rjv-type-float-color': theme.palette.primary.main,
 }
 
+// checking to see if the value is a URL type
+function isURL(value: any): value is URL {
+  return typeof value === 'object' && value instanceof URL && 'href' in value;
+}
+
+// method to update data prop and convert strings that begin with http to a URL type
+function convertStringsToUrls(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(convertStringsToUrls);
+  }
+
+  if (obj && typeof obj === 'object') {
+    const newObj: any = {};
+    for (const key in obj) {
+      const value = obj[key];
+      if (typeof value === 'string' && value.startsWith('http')) {
+        try {
+          newObj[key] = new URL(value);
+        } catch {
+          newObj[key] = value;
+        }
+      } else {
+        newObj[key] = convertStringsToUrls(value);
+      }
+    }
+    return newObj;
+  }
+
+  return obj;
+}
+
 const MqJsonView: React.FC<JsonViewProps> = ({ data }) => {
+  const processedData = convertStringsToUrls(data)
+
   return (
-    <Box my={2}>
-      <JsonView style={mqTheme} collapsed={2} value={data} />
+    // <Box my={2}>
+    //   <JsonView
+    //    style={mqTheme} collapsed={2} value={data} 
+    //    />
+    // </Box>
+ <Box my={2}>
+      <JsonView value={processedData} collapsed={2} style={mqTheme}>
+        <JsonView.Url
+          render={(props, { type, value }) => {
+            if (type === 'value' && isURL(value)) {
+              return (
+                <a href={value.href} target="_blank" rel="noopener noreferrer" {...props}>
+                  {value.href}
+                </a>
+              );
+            }
+            return undefined;
+          }}
+        />
+      </JsonView>
     </Box>
   )
 }
